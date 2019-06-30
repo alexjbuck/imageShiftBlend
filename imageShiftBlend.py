@@ -1,13 +1,13 @@
 #!/usr/local/bin/python3
+from matplotlib.widgets import Slider
+from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-from matplotlib.widgets import Slider
 import argparse
-from PIL import Image
 
 import time
-global t0,w
+
 t0 = time.time()
 
 def printStatus(level,text):
