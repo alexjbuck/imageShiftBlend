@@ -4,36 +4,44 @@ import numpy as np
 import math
 from matplotlib.widgets import Slider
 
-def XYV(c,n,extra):
+def XYW(c,n,extra,w):
 	"""This function calculates values for X, Y, and V, the weights
-	given values of c (scale), n (number of frames), extra (buffer frames)"""
+	given values of c (scale), n (number of frames), extra (buffer frames)
+	w is the width in pixels of each frame.
+	"""
 	n = int(n)
+	w = int(w)
 	extra = int(extra)
+	# N linspace from 0 to n with integer spacing
 	N = np.linspace(-extra,n+extra,2*extra+n+1)
-	X = np.linspace(-extra,n+extra,256*n,endpoint=True)
-	Y = np.zeros((len(N),len(X)))
-	V = np.zeros((len(N)+1,len(X)))
+	# X linspace from 0 to n with w points representing the w pixels wide of the frame
+	X = np.linspace(-extra,n+extra,w,endpoint=True)
+	# Y is dimension n+1 x w
+	Y = np.zeros((len(N)+1,len(X)))
+	# V is dimension n+2 x w
+	W = np.zeros((len(N)+1,len(X)))
 
 	# Calculate Y, the boundary lines for determining weights
+	Y[0] = np.ones(len(X))
 	for j in range(0,len(N)):
-		Y[j] = 1/2 + np.arctan(c*(X-N[j]))/math.pi
+		Y[j+1] = 1/2 + np.arctan(c*(X-N[j]))/math.pi
 
-	# Calculate V, the weights
-	V[0] = np.ones(len(X))-Y[0]
-	for j in range(1,len(N)):
-		V[j] = Y[j-1]-Y[j]
-	V[len(N)] = Y[len(N)-1]-np.zeros(len(X))
+	# Calculate W, the weights
+	# W[0] = np.ones(len(X))-Y[0]
+	for j in range(0,len(N)):
+		W[j] = Y[j]-Y[j+1]
+	W[len(N)] = Y[len(N)]-np.zeros(len(X))
 
-	# Return X, Y, and V
-	return X,Y,V
+	# Return X, Y, and W
+	return X,Y,W
 
-def replot(fig,ax,n,X,Y,V):
+def replot(fig,ax,n,X,Y,W):
 	"""This function clears the subplot axes and then replots
 	"""
 	ax[0].clear()
 	ax[0].plot(X,Y.transpose())
 	ax[1].clear()
-	ax[1].plot(X,V.transpose())
+	ax[1].plot(X,W.transpose())
 	ax[0].set_xlim(0,n)
 	ax[1].set_xlim(0,n)
 	ax[0].set_title('Image Transitions')
@@ -48,14 +56,16 @@ def update(val):
 	c = sc.val
 	n = sn.val
 	e = se.val
-	X,Y,V = XYV(c,n,e)
-	replot(fig,ax,n,X,Y,V)
+	w = 256*n
+	X,Y,W = XYW(c,n,e,w)
+	replot(fig,ax,n,X,Y,W)
 
 c = 5
-n = int(5)
+n = int(3)
 e = int(0)
+w = 256*n
 
-X,Y,V = XYV(c,n,e)
+X,Y,W = XYW(c,n,e,w)
 
 fig,ax = plt.subplots(2,constrained_layout=True)
 
@@ -74,7 +84,7 @@ sc.on_changed(update)
 sn.on_changed(update)
 se.on_changed(update)
 
-replot(fig,ax,n,X,Y,V)
+replot(fig,ax,n,X,Y,W)
 
 # plt.figure(3)
 # S = np.zeros_like(X)
