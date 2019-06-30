@@ -97,7 +97,7 @@ def reweight(frames,W):
 	return outFrame
 
 parser = argparse.ArgumentParser(description='Input N image files and blend them left to right using arctan based weighting. N-2 central frames with weighting peaks and 2 edge frames.')
-parser.add_argument('--input','-i',help="Input files.",required=False,dest='imgList',nargs='+',type=str,default=('1.jpg','2.jpg','3.jpg'))
+parser.add_argument('--input','-i',help="Input files.",required=True,dest='imgList',nargs='+',type=str,default=('1.jpg','2.jpg','3.jpg'))
 
 args=parser.parse_args()
 imgList=args.imgList
