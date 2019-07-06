@@ -79,14 +79,19 @@ def update(val):
 	frame = reweight(frames,W)
 	replot(fig,axi,axw,b,X,W,frame)
 
+def rows(frame):
+	return frame.shape[0]
+def columns(frame):
+	return frame.shape[1]
+def depth(frame):
+	return frame.shape[2]
+
 def rgbReweight(frames,W):
 	printStatus(0,"Beginning frame weighting")
 	outFrame = np.zeros_like(frames[0])
-	for i in range(0,frames.shape[0]):
+	for i in range(0,frames.shape[0]): # iterate over each frame within frames
 		printStatus(1,"Weighting frame "+str(i))
-		# iterate over each frame within frames
-		for j in range(0,frames.shape[2]):
-			# iterate over every pixel column of the frame (shape[1] is the row index)
+		for j in range(columns(outFrame)): # iterate over every column of the frame
 			# multiply every pixel in the column by the weight for this image (i) and this column (j)
 			# Add the scaled frame to the outFrame
 			outFrame[:,j,:]+=frames[i,:,j,:]*W[i,j]
@@ -96,9 +101,21 @@ def rgbReweight(frames,W):
 def hsvReweight(frames,W):
 	printStatus(0,"Beginning frame weighting")
 	outFrame = np.zeros_like(frames[0])
-	for k in range(0,frames.shape[2]): # iterate over every column of the frame (shape[1] is the row index)
+	for i in range(0,frames.shape[0]): # iterate over each frame within frames
+		printStatus(1,"Weighting frame "+str(i))
+		for j in range(columns(outFrame)): # iterate over every column of the frame (shape[1] is the row index)
+			# multiply every pixel in the column by the weight for this image (i) and this column (j)
+			# Add the scaled frame to the outFrame
+			outFrame[:,j,:]+=frames[i,:,j,:]*W[i,j] # rx3 * 1x1
+	printStatus(1,"Done!")
+	return outFrame
+
+def hsvReweight2(frames,W):
+	printStatus(0,"Beginning frame weighting")
+	outFrame = np.zeros_like(frames[0])
+	for k in range(columns(outFrame)): # iterate over every column of the frame (shape[1] is the row index)
 		printStatus(1,"Weighting column "+str(k))
-		for j in range(0,frames.shape[1]): # iterate over every row of the frame
+		for j in range(rows(outFrame)): # iterate over every row of the frame
 			printStatus(2,"Weighting row "+str(j))
 			ss = 0
 			vs = 0
