@@ -78,7 +78,8 @@ def update(val):
 	X,Y,W = calcWeights(b,n,e,w)
 	frame = reweight(frames,W)
 	replot(fig,axi,axw,b,X,W,frame)
-def reweight(frames,W):
+
+def rgbReweight(frames,W):
 	printStatus(0,"Beginning frame weighting")
 	outFrame = np.zeros_like(frames[0])
 	for i in range(0,frames.shape[0]):
@@ -92,11 +93,35 @@ def reweight(frames,W):
 	printStatus(1,"Done!")
 	return outFrame
 
+def hsvReweight(frames,W):
+	printStatus(0,"Beginning frame weighting")
+	outFrame = np.zeros_like(frames[0])
+	for k in range(0,frames.shape[2]): # iterate over every column of the frame (shape[1] is the row index)
+		printStatus(1,"Weighting column "+str(k))
+		for j in range(0,frames.shape[1]): # iterate over every row of the frame
+			printStatus(2,"Weighting row "+str(j))
+			ss = 0
+			vs = 0
+			h = np.zeros(frames.shape[0])
+			s = np.zeros(frames.shape[0])
+			v = np.zeros(frames.shape[0])
+			x = np.zeros(frames.shape[0])
+			y = np.zeros(frames.shape[0])
+			for i in range(0,frames.shape[0]): # iterate over each frame within frames
+				h[i],s[i],v[i] = frames[i,j,k,:]
+				x[i] = math.cos(h[i]*2*math.pi)*W[i,k]
+				y[i] = math.cos(h[i]*2*math.pi)*W[i,k]
+				ss += s[i]*W[i,k]
+				vs += v[i]*W[i,k]
+			hs = math.atan2(sum(y),sum(x))/(2*math.pi)
+			outFrame[j,k,:] = (hs,ss,vs)
+	printStatus(1,"Done!")
+	return outFrame
+
+
 def frameRGBtoRGB(frame):
 	return frame.astype('uint8')
 def frameRGBtoHSV(frame):
-	"""	NOTE: VALUES ACTUALLY STORED ARE CARTESIAN XYZ COORDINATES FOR THE HSV CYLINDRICAL COORDINATES. THIS IS DONE TO SUPPORT AVERAGING. SINCE I NEVER NEED TO ACCESS THE PIXEL VALUES AT THIS POINT FOR ANYTHING ELSE.
-	"""	
 	frame = frame.astype('float')
 	for i in range(frame.shape[0]):
 		for j in range(frame.shape[1]):
@@ -105,17 +130,12 @@ def frameRGBtoHSV(frame):
 			g /= 255.0
 			b /= 255.0
 			h,s,v = colorsys.rgb_to_hsv(r,g,b)
-			x = s*math.cos(h*2*math.pi)
-			y = s*math.sin(h*2*math.pi)
-			frame[i,j] = (x,y,v)
+			frame[i,j] = (h,s,v)
 	return frame
 def frameHSVtoRGB(frame):
-	"""	NOTE: VALUES ACTUALLY STORED ARE CARTESIAN XYZ COORDINATES FOR THE HSV CYLINDRICAL COORDINATES. THIS IS DONE TO SUPPORT AVERAGING. SINCE I NEVER NEED TO ACCESS THE PIXEL VALUES AT THIS POINT FOR ANYTHING ELSE.
-	"""	
 	for i in range(frame.shape[0]):
 		for j in range(frame.shape[1]):
-			x,y,v = frame[i,j]
-			h,s = (math.atan2(y,x)/(2*math.pi),math.sqrt(x**2+y**2))
+			h,s,v = frame[i,j]
 			h %= 1
 			s = min(s,1)
 			r,g,b = colorsys.hsv_to_rgb(h,s,v)
@@ -126,8 +146,6 @@ def frameHSVtoRGB(frame):
 	np.clip(frame,0,255,out=frame)
 	return frame.astype('uint8')
 def frameRGBtoHSL(frame):
-	"""	NOTE: VALUES ACTUALLY STORED ARE CARTESIAN XYZ COORDINATES FOR THE HSL CYLINDRICAL COORDINATES. THIS IS DONE TO SUPPORT AVERAGING. SINCE I NEVER NEED TO ACCESS THE PIXEL VALUES AT THIS POINT FOR ANYTHING ELSE.
-	"""	
 	frame = frame.astype('float')
 	for i in range(frame.shape[0]):
 		for j in range(frame.shape[1]):
@@ -136,17 +154,13 @@ def frameRGBtoHSL(frame):
 			g /= 255.0
 			b /= 255.0
 			h,l,s = colorsys.rgb_to_hls(r,g,b)
-			x = s*math.cos(h*2*math.pi)
-			y = s*math.sin(h*2*math.pi)
-			frame[i,j] = (x,y,l)
-	return frame
+			frame[i,j] = (h,s,l)
+	# return frame
 def frameHSLtoRGB(frame):
-	"""	NOTE: VALUES ACTUALLY STORED ARE CARTESIAN XYZ COORDINATES FOR THE HSL CYLINDRICAL COORDINATES. THIS IS DONE TO SUPPORT AVERAGING. SINCE I NEVER NEED TO ACCESS THE PIXEL VALUES AT THIS POINT FOR ANYTHING ELSE.
-	"""	
 	for i in range(frame.shape[0]):
 		for j in range(frame.shape[1]):
-			x,y,l = frame[i,j]
-			h,s = (math.atan2(y,x)/(2*math.pi),math.sqrt(x**2+y**2))
+			h,s,l = frame[i,j]
+			# h,s = (math.atan2(y,x)/(2*math.pi),math.sqrt(x**2+y**2))
 			h %= 1
 			s = min(s,1)
 			r,g,b = colorsys.hls_to_rgb(h,l,s)
@@ -200,12 +214,14 @@ else:
 if args.cm=="rgb":
 	frameRGBtoCM = frameRGBtoRGB
 	frameCMtoRGB = frameRGBtoRGB
+	reweight = rgbReweight
 elif args.cm=="hsl":
 	frameRGBtoCM = frameRGBtoHSL
 	frameCMtoRGB = frameHSLtoRGB
 elif args.cm=="hsv":
 	frameRGBtoCM = frameRGBtoHSV
 	frameCMtoRGB = frameHSVtoRGB
+	reweight = hsvReweight
 else:
 	print("Something went very wrong when parsing color model arguments. I'm going to give up.")
 	quit()
@@ -260,3 +276,4 @@ else:
 	printStatus(0,'File saved: '+filename)
 
 
+# 
